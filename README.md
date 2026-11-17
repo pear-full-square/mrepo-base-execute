@@ -24,6 +24,13 @@ branch is squashed into its target, one commit there; a failure resets instead. 
   did on its branch, commit by commit, stays out of the target's
   history) and removed; discarded on a failure. Its branch of
   `request/execute`, the request's record, is merged, a plain merge.
+- **A job waited for** (`exec.wait(job)`, `lib/wait.js`): an action
+  parks its request until an outside job, an async function, ends; its
+  writes so far are dropped, the runtime is free meanwhile. The job's
+  result is written as a completed record into the mrepo's own
+  `waiting/outbox/<key>.json`, collected as a linked mrepo's response is,
+  and the action executed again with it: `form.resumed`, `{ output }` or
+  `{ error }`. One wait a request.
 - **A command sent on** (`exec.forward(to, command)`, `lib/remote.js`): an
   action that finds its position a shortcut sends the command that follows
   to the mrepo linked there, unchanged, into its inbox folder. Nothing of
@@ -32,12 +39,11 @@ branch is squashed into its target, one commit there; a failure resets instead. 
   processed has a waiting principal. Once the request protocol has added
   the other mrepo's response to the branch, the principal is returned with
   it here.
-- **A continuation** (`exec.continuation(commands, at)`): an action
+- **A continuation** (`exec.continuation(script, at)`): an action
   answers, beside its output, with a script for who asked to go on with:
-  the commands, each its parts, and the position in this mrepo they are
-  written from. One a request, at most 100 commands; none with an error.
-  Not run here: the terminal runs it, a command after the response of
-  the one before. One that comes back from a linked mrepo is returned
+  shell text calling `haicc`, and the position in this mrepo it is run
+  for. One a request, at most 64 KiB; none with an error. Not run here:
+  the terminal runs it with `sh`. One that comes back from a linked mrepo is returned
   with the response, its position behind the one the command was sent
   on at.
 - **What is not there is said with what is**: `no protocol: <name>`, with
@@ -65,7 +71,9 @@ mrepo's root (`runtime/service.json`) or slash-led, the same.
 
 ## Tests
 
-- `brittle-bare test/*.test.js`: the unit tests
+- `brittle-bare test/*.test.js` (Bare installed): the execution of a request: its branches from their targets and their squash, the context the action reads through, local and global commit and rollback, the log and its steps, an error at the boundary, and `exec.run`, `exec.continuation`, `exec.forward` and `exec.wait`; each test by its name in [test/](test/).
+
+## The context
 
 The action's context (`exec`): `read`, `select` (overlaid: a target read
 from its execution branch), `find` (as `read`, for a file that may not be
