@@ -46,8 +46,7 @@
 // in that mrepo's request/done.
 // A command executed here (exec.run): understood, checked as this request
 // is, its action run in this same execution. Its URI is read as written
-// where it stands: at the root for the mrepo's own (a hook), at main for
-// one from outside, at the position a haicc command went to.
+// where it stands: at main, or at the position a haicc command went to.
 // A request's URI is an array of segments, a prefix then the URI as
 // written (['main', 'host']); the paths the execution reads and writes by
 // are given relative from the root (main/x) or slash-led (/main/x), the
@@ -73,7 +72,7 @@
 // run here (exec.run) can set it from there on, one sent on takes the flags
 // in force with it, written into its line; the entries of the request it
 // became are that request's own, there.
-import { record, continuationOf, logger, sorted, AUTHOR, EXECUTE, check, runtimeData, isInternal, principals, asked, understood, measured, returned, isReturned, refusal, carrying, words, lineOf, joined, slashed, OUTSIDE, OWN } from 'mrepo-base-request'
+import { record, continuationOf, logger, sorted, AUTHOR, EXECUTE, check, runtimeData, isInternal, principals, asked, understood, measured, returned, isReturned, refusal, carrying, words, lineOf, joined, slashed, STANDING } from 'mrepo-base-request'
 
 
 // The XPath machinery's own layers, and its log of physical queries there
@@ -356,9 +355,9 @@ export async function execute (ctx, { actions = {} } = {}) {
       // A command executed here, in this execution: a line or its words,
       // understood, checked as this request is, its action run; what it
       // says. own: as the mrepo's own (a hook: not held at the door). at:
-      // where it stands, a prefix its URI is read behind (none for the
-      // mrepo's own, main for one from outside, by default).
-      run: async (command, { own = false, at = internal || own ? OWN : OUTSIDE } = {}) => {
+      // where it stands, the parts its URI is read behind (main by
+      // default; a position there, where a haicc command went).
+      run: async (command, { own = false, at = STANDING } = {}) => {
         // (the flags in force come with it, as with a command sent on:
         // written into its line)
         const parts = carrying(Array.isArray(command) ? command : words(command), flags, ctx.protocols ?? {})

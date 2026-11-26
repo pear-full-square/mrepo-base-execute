@@ -62,7 +62,7 @@ const lines = r => r.processing.log.map(e => [e.level, e.event, e.line.replace(/
 test('execute: its action run on its own branches, squashed into each target; the request returned, done, with what the action says', async (t) => {
   const ctx = await mrepo(t)
   const before = (await heads(ctx)).main
-  const r = await own(ctx, 'note/put main/a hello')
+  const r = await own(ctx, 'note/put a hello')
   t.alike(r.returned, { status: 'done', message: 'Wrote a.txt in main.', attachments: [] }, 'what the action says, its own words')
   t.is((await ctx.repo.read('/main/a.txt')).toString(), 'hello', 'in main')
   const squashed = await ctx.backend.readCommit((await heads(ctx)).main)
@@ -72,26 +72,26 @@ test('execute: its action run on its own branches, squashed into each target; th
   t.alike(r.processing.changed, [{ target: 'main', added: ['a.txt'], changed: [], removed: [] }], 'what it changed: a field, a target each')
   t.alike([r.processing.metrics.puts, r.processing.metrics.commits, r.processing.metrics.ms >= 0], [1, 1, true], 'its metrics: a field')
   t.alike(lines(r), [], 'at info nothing said beside them: a fact once')
-  const twice = await own(ctx, 'note/put main/b hello twice')
+  const twice = await own(ctx, 'note/put b hello twice')
   t.alike([twice.returned.status, twice.processing.changed], ['done', [{ target: 'main', added: ['b.txt'], changed: [], removed: [] }]], 'a local commit undone in the action: not in the target')
-  const got = await own(ctx, 'note/get main/a --flags log=debug')
+  const got = await own(ctx, 'note/get a --flags log=debug')
   t.alike(got.returned, { status: 'done', message: 'Read a.txt.', attachments: [{ name: 'the document', type: 'haiccing/base-package-note/text', at: 'main/a.txt' }] }, 'data its product: attached, by its type, where it is')
   t.alike(lines(got), [['verbose', 'note.get.read', 'Read a.txt, 5 bytes. (N ms; 1 read)'], ['debug', 'note.get.bytes', 'Its text: hello.']], 'its log as much as its flag asks: the action\'s entries under its name, a step measured behind its line')
-  const many = await own(ctx, 'note/many main')
+  const many = await own(ctx, 'note/many .')
   t.alike([many.processing.changed[0].added.length, lines(many)], [LISTED, [['info', 'request.changed', `${LISTED + 1} paths changed in main: the first ${LISTED} listed.`]]], 'more than it lists of a target: said')
 })
 
 test('failed: what stopped it said, its causes; nothing of it kept; an action that says nothing, one that logs data', async (t) => {
   const ctx = await mrepo(t)
   const before = (await heads(ctx)).main
-  const r = await own(ctx, 'note/break main')
+  const r = await own(ctx, 'note/break .')
   t.alike(r.returned, { status: 'failed', message: 'Failed, nothing of it kept.\nthe note cannot be written\ncaused by: no ink', attachments: [] }, 'the outcome first, then why, a fact a line')
   t.alike(lines(r), [['error', 'request.failed', 'the note cannot be written.\nCaused by: no ink.\nUndone: 1 commit, 1 put.']], 'in its log: what was undone')
   t.is((await heads(ctx)).main, before, 'main untouched')
   t.alike([r.processing.changed, r.processing.metrics.puts], [[], 1], 'nothing changed; its metrics still its own')
-  t.alike((await own(ctx, 'note/quiet main')).returned.message, 'Failed, nothing of it kept.\nnothing said: note/quiet answers with what happened, in words', 'an action says what happened')
-  t.alike((await own(ctx, 'note/old main')).returned.message, 'Failed, nothing of it kept.\nnot a log entry: note.old.old (what happened, said: a line)', 'a log entry is a line')
-  t.alike((await own(ctx, 'note/nope main')).returned.message, 'Refused, nothing run.\nno action: note nope (both, break, get, later, many, old, put, quiet, there)', 'an action there is none of: refused')
+  t.alike((await own(ctx, 'note/quiet .')).returned.message, 'Failed, nothing of it kept.\nnothing said: note/quiet answers with what happened, in words', 'an action says what happened')
+  t.alike((await own(ctx, 'note/old .')).returned.message, 'Failed, nothing of it kept.\nnot a log entry: note.old.old (what happened, said: a line)', 'a log entry is a line')
+  t.alike((await own(ctx, 'note/nope .')).returned.message, 'Refused, nothing run.\nno action: note nope (both, break, get, later, many, old, put, quiet, there)', 'an action there is none of: refused')
 })
 
 test('from the inbox: refused as it executes while its protocol is not active; active: run, sent back', async (t) => {
@@ -109,12 +109,12 @@ test('from the inbox: refused as it executes while its protocol is not active; a
 
 test('a command run in the execution: its answer its own, the flags in force with it; a continuation', async (t) => {
   const ctx = await mrepo(t)
-  await own(ctx, 'note/put main/a hello')
-  const r = await own(ctx, 'note/both main --flags log=verbose -- note/get main/a')
+  await own(ctx, 'note/put a hello')
+  const r = await own(ctx, 'note/both . --flags log=verbose -- note/get a')
   t.alike([r.returned.status, r.returned.message], ['done', 'Ran it. It said: Read a.txt.'])
   t.alike(lines(r), [['verbose', 'note.get.read', 'Read a.txt, 5 bytes. (N ms; 1 read)']], 'its entries under its own name, as much as the flag in force asks')
   t.alike(r.processing.continuation, { at: '.', script: 'haicc . note/get a\n' }, 'what whoever asked goes on with')
-  const bad = await own(ctx, 'note/both main note/get main/a --flags nope')
+  const bad = await own(ctx, 'note/both . note/get a --flags nope')
   t.alike(bad.returned.message, 'Failed, nothing of it kept.\nnot run: no flag: nope (container, feedback, help, layer, log, physical)', 'what its flags keep from being run: said, as at the door')
 })
 
@@ -122,7 +122,7 @@ test('sent on: the command in a request of its own, the flags in force in its li
   const ctx = await mrepo(t)
   const y = join(ctx.dir, 'mrepos', 'y')
   mkdirSync(join(y, 'inbox'), { recursive: true })
-  const { name } = await internal(ctx, 'note/there main --flags log=debug -- note/get a')
+  const { name } = await internal(ctx, 'note/there . --flags log=debug -- note/get a')
   await pass(ctx)
   const [p] = await principals(ctx)
   const [there] = inboxOf(y).list()
@@ -144,7 +144,7 @@ test('sent on: the command in a request of its own, the flags in force in its li
 test('a job waited for: the request parked, the runtime free; resumed with what the job returned', async (t) => {
   const ctx = await mrepo(t)
   for (const [how, said] of [['well', 'The job ended. Three files copied.'], ['badly', 'The job failed: it broke']]) {
-    const { name } = await internal(ctx, `note/later main ${how}`)
+    const { name } = await internal(ctx, `note/later . ${how}`)
     await pass(ctx)
     const [p] = await principals(ctx)
     t.alike([p.request.processing.waiting.folder, p.request.processing.waiting.resume], ['waiting', true], `${how}: parked, what it waits for said on it`)
@@ -158,13 +158,13 @@ test('a job waited for: the request parked, the runtime free; resumed with what 
 
 test('executed: a request returned elsewhere handed over as execute hands one; failed: a runtime\'s error in the request executing', async (t) => {
   const ctx = await mrepo(t)
-  const a = await internal(ctx, 'note/get main/a')
+  const a = await internal(ctx, 'note/get a')
   await request(ctx)
   const [p] = await principals(ctx)
   await executed(ctx, a.name, record(`/${EXECUTE}`, returned(p.request, 'done', 'Done elsewhere.'), Number(a.name)))
   await request(ctx)
   t.is((await layer(ctx, DONE).read(a.name)).value.returned.message, 'Done elsewhere.')
-  const b = await internal(ctx, 'note/get main/a')
+  const b = await internal(ctx, 'note/get a')
   await request(ctx)
   t.alike(await failed(ctx, 'the store is closed'), [b.name])
   await request(ctx)
