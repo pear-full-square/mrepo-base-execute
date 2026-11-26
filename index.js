@@ -433,7 +433,8 @@ export async function execute (ctx, { actions = {} } = {}) {
       const causes = causesOf(err)
       result = { ok: false, message: err.refused ? refusal(err.message) : ['Failed, nothing of it kept.', err.message, ...causes.map(c => `caused by: ${c}`)].join('\n') }
       const undone = counts({ commits: counted.commits, puts: counted.puts, removes: counted.removes })
-      write('error', 'request.failed', [`${err.message}${step ? `, at ${step}` : ''}.`, ...causes.map(c => `Caused by: ${c}.`), undone ? `Undone: ${undone}.` : 'Nothing to undo.', ...(level() === 'debug' && err.stack ? String(err.stack).split('\n').slice(1).map(l => l.trim()) : [])].join('\n'))
+      // (refused: nothing was run; why is what is returned, said once)
+      if (!err.refused) write('error', 'request.failed', [`${err.message}${step ? `, at ${step}` : ''}.`, ...causes.map(c => `Caused by: ${c}.`), undone ? `Undone: ${undone}.` : 'Nothing to undo.', ...(level() === 'debug' && err.stack ? String(err.stack).split('\n').slice(1).map(l => l.trim()) : [])].join('\n'))
       forwarded = null
       waited = null
       continued = null

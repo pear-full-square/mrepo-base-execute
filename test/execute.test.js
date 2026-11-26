@@ -131,7 +131,7 @@ test('sent on: the command in a request of its own, the flags in force in its li
   t.alike([sent.topic, sent.value.command, sent.value.from, sent.value.to, sent.value.reply, sent.value.origin], ['/local/y/inbox', 'note/get a --flags log=debug --', 'local/x', 'local/y', `/local/x/execute/${name}`, Number(name)], 'asked of the linked mrepo: its line, the flags that hold down a chain written into it; its answer for this request\'s branch')
   t.alike(Object.keys(await heads(ctx)).filter(b => b.startsWith('execute/')), [branchOf(name, EXECUTE)], 'only its request branch left: nothing of it executed here')
   // the linked mrepo's part, stood in for: the request returned, in its outbox
-  const answer = { ...returned(sent.value, 'done', 'Read a.txt.'), processing: { ...sent.value.processing, log: [{ time: 7, level: 'debug', event: 'note.get.bytes', line: 'Its text: hello.' }], metrics: { ms: 3, reads: 1, selects: 0, puts: 0, removes: 0, commits: 0 }, path: ['z'], continuation: { at: 'z', script: 'true\n' } } }
+  const answer = { ...returned(sent.value, 'done', 'Read a.txt.'), processing: { ...sent.value.processing, log: [{ time: '2026-11-26T10:00:00.000Z', level: 'debug', event: 'note.get.bytes', line: 'Its text: hello.' }], metrics: { ms: 3, reads: 1, selects: 0, puts: 0, removes: 0, commits: 0 }, path: ['z'], continuation: { at: 'z', script: 'true\n' } } }
   outboxOf(y).put(there, record('/outbox', answer, there))
   await pass(ctx)
   await pass(ctx)
