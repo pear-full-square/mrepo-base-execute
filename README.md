@@ -51,7 +51,10 @@ branch is squashed into its target, one commit there; a failure resets instead. 
   (`processing.waiting`). A request branch not being processed has a
   waiting principal. Once the request protocol has added the other
   mrepo's answer to the branch, the principal is returned with it here:
-  what was returned there its own, where it went its `path`.
+  what was returned there its own. What happened to it there is not
+  copied: the request it became is linked (`processing.sent`: the
+  position, the mrepo's unique URI, its offset there), found in that
+  mrepo's `request/done`.
 - **A continuation** (`exec.continuation(script, at)`): an action
   answers, beside what it says, with a script for who asked to go on with
   (`processing.continuation`):
@@ -125,8 +128,8 @@ not said in a line beside it.
 - **`changed`**: what it changed, a target each: the paths added,
   changed and removed, from the two trees; the first hundred of a target
   (`LISTED`), beyond them said in its log (`request.changed`).
-- **`waiting`**, **`path`**: what it waits for, sent on or parked; where
-  it went.
+- **`waiting`**, **`sent`**: what it waits for, sent on or parked; the
+  request it became where it was sent on, a link.
 - **`log`**: its entries, a line each (`time`, `level`, `event`,
   `line`). How much is kept is the request's flag,
   `log=info|verbose|debug`; `info` without it. An error and a warning
@@ -141,8 +144,8 @@ not said in a line beside it.
 - **In a chain**: a command run here (`exec.run`) has its entries under
   its own protocol and action, and its flags hold from there on; one
   sent on (`exec.forward`) takes the flags in force with it, in its
-  line, and the entries of the request it became come back with its
-  answer, each line led by where it was (`host: ...`).
+  line; the entries of the request it became are that request's own,
+  there.
 - **The physical log** (`xpath/log`): not written for now: a step's
   line holds no query to keep; back when xpath is brought to the
   request.

@@ -41,7 +41,9 @@
 // said on it (processing.waiting); a request branch not being processed has
 // a waiting principal. The request protocol adds the child's answer to the
 // branch; the principal is then returned with it here: what was returned
-// there its own, where it went its path.
+// there its own. What happened to it there is not copied: the request it
+// became is linked (processing.sent: the mrepo, its offset there), found
+// in that mrepo's request/done.
 // A command executed here (exec.run): understood, checked as this request
 // is, its action run in this same execution. Its URI is read as written
 // where it stands: at the root for the mrepo's own (a hook), at main for
@@ -57,7 +59,8 @@
 //             selects, puts, removes, commits)
 //   changed   what it changed, a target each: the paths added, changed,
 //             removed (at most LISTED of a target; beyond: said in its log)
-//   waiting   what it waits for, sent on or parked; path, where it went
+//   waiting   what it waits for, sent on or parked; sent, the request it
+//             became where it was sent on, a link
 //   log       its entries, a line each ({ time, level, event, line }):
 //             verbose: the action's steps, debug its internals: the
 //             action's own entries (exec.log), under its protocol and
@@ -68,8 +71,8 @@
 // How much of the log is kept is the request's flag, log=info|verbose|debug
 // (info without it). A flag holds through a chain until changed: a command
 // run here (exec.run) can set it from there on, one sent on takes the flags
-// in force with it, written into its line, and the entries of the request
-// it became come back with its answer, each line led by where it was.
+// in force with it, written into its line; the entries of the request it
+// became are that request's own, there.
 import { record, continuationOf, logger, sorted, AUTHOR, EXECUTE, check, runtimeData, isInternal, principals, asked, understood, measured, returned, isReturned, refusal, carrying, words, lineOf, joined, slashed, OUTSIDE, OWN } from 'mrepo-base-request'
 
 
@@ -217,17 +220,13 @@ export async function execute (ctx, { actions = {} } = {}) {
     const resumed = was?.resume ? p.response.returned : null
     if (was && !resumed) {
       const r = p.response
-      // its log: what it logged before it was sent on, then the entries of
-      // the request it became, each line led by where it was
-      const there = (r.processing?.log ?? []).map(e => ({ ...e, line: `${was.at}: ${e.line}` }))
-      // its continuation comes back with it, its position seen from here:
-      // behind the position the command was sent on at
+      // What was returned there is this request's answer. What happened
+      // to it there is that request's own, in that mrepo's request/done:
+      // linked (processing.sent), not copied. Its continuation comes back
+      // with the answer (whoever asked goes on with it), its position
+      // seen from here: behind the position the command was sent on at.
       const c = r.processing?.continuation
-      await written({
-        ...request,
-        processing: { ...request.processing, log: [...request.processing.log, ...there], metrics: r.processing?.metrics ?? null, waiting: null, path: [was.at, ...(r.processing?.path ?? [])], continuation: c ? { ...c, at: from(was.at, c.at) } : null },
-        returned: r.returned
-      })
+      await written({ ...request, processing: { ...request.processing, waiting: null, continuation: c ? { ...c, at: from(was.at, c.at) } : null }, returned: r.returned })
       continue
     }
     const present = await heads(backend)
@@ -449,8 +448,10 @@ export async function execute (ctx, { actions = {} } = {}) {
       for (const t of made.keys()) await close(backend, name, t)
       try {
         const waiting = waited ? park(ctx, name, request, waited) : pass(ctx, name, request, forwarded.to, forwarded.command, flags)
+        // (sent on: the request it became, linked: its mrepo and its offset there)
+        const sent = forwarded ? { at: forwarded.to.at, mrepo: forwarded.to.mrepo, offset: waiting.offset } : null
         const c = await w.change(await open(w, backend, name, EXECUTE))
-        await c.put(`/${name}.json`, Buffer.from(JSON.stringify(record(`/${EXECUTE}`, { ...logged(request, entries), processing: { ...logged(request, entries).processing, waiting } }, Number(name))) + '\n'))
+        await c.put(`/${name}.json`, Buffer.from(JSON.stringify(record(`/${EXECUTE}`, { ...logged(request, entries), processing: { ...logged(request, entries).processing, waiting, sent } }, Number(name))) + '\n'))
         await c.commit(waited ? `${name}: waiting for a job` : `${name}: sent on to ${forwarded.to.at}, waiting`, { author: AUTHOR })
       } catch (err) {
         write('error', 'request.failed', `${err.message}.`)

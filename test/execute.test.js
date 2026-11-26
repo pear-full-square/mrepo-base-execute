@@ -118,7 +118,7 @@ test('a command run in the execution: its answer its own, the flags in force wit
   t.alike(bad.returned.message, 'Failed, nothing of it kept.\nnot run: no flag: nope (container, feedback, help, layer, log, physical)', 'what its flags keep from being run: said, as at the door')
 })
 
-test('sent on: the command in a request of its own, the flags in force in its line; the principal waiting; returned with the answer, where it went its path', async (t) => {
+test('sent on: the command in a request of its own, the flags in force in its line; the principal waiting; returned with the answer, the request it became linked', async (t) => {
   const ctx = await mrepo(t)
   const y = join(ctx.dir, 'mrepos', 'y')
   mkdirSync(join(y, 'inbox'), { recursive: true })
@@ -126,7 +126,7 @@ test('sent on: the command in a request of its own, the flags in force in its li
   await pass(ctx)
   const [p] = await principals(ctx)
   const [there] = inboxOf(y).list()
-  t.alike(p.request.processing.waiting, { at: 'y', folder: 'mrepos/y', offset: there, resume: false }, 'what it waits for, said on it')
+  t.alike([p.request.processing.waiting, p.request.processing.sent], [{ at: 'y', folder: 'mrepos/y', offset: there, resume: false }, { at: 'y', mrepo: 'local/y', offset: there }], 'what it waits for, said on it; the request it became, linked')
   const sent = inboxOf(y).read(there)
   t.alike([sent.topic, sent.value.command, sent.value.from, sent.value.to, sent.value.reply, sent.value.origin], ['/local/y/inbox', 'note/get a --flags log=debug --', 'local/x', 'local/y', `/local/x/execute/${name}`, Number(name)], 'asked of the linked mrepo: its line, the flags that hold down a chain written into it; its answer for this request\'s branch')
   t.alike(Object.keys(await heads(ctx)).filter(b => b.startsWith('execute/')), [branchOf(name, EXECUTE)], 'only its request branch left: nothing of it executed here')
@@ -137,8 +137,8 @@ test('sent on: the command in a request of its own, the flags in force in its li
   await pass(ctx)
   const r = (await layer(ctx, DONE).read(name)).value
   t.alike(r.returned, answer.returned, 'what was returned there: its own')
-  t.alike([r.processing.waiting, r.processing.path, r.processing.metrics.reads, r.processing.continuation], [null, ['y', 'z'], 1, { at: 'y/z', script: 'true\n' }], 'waiting for nothing; where it went; its continuation seen from here')
-  t.alike(r.processing.log.map(e => e.line), ['y: Its text: hello.'], 'the entries of the request it became, each line led by where it was')
+  t.alike([r.processing.waiting, r.processing.sent, r.processing.continuation], [null, { at: 'y', mrepo: 'local/y', offset: there }, { at: 'y/z', script: 'true\n' }], 'waiting for nothing; the request it became linked: its mrepo, its offset there; its continuation seen from here')
+  t.alike([r.processing.log, r.processing.metrics], [[], null], 'what happened to it there is that request\'s own, in that mrepo\'s request/done: not copied')
 })
 
 test('a job waited for: the request parked, the runtime free; resumed with what the job returned', async (t) => {
