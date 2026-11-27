@@ -40,7 +40,7 @@ const actions = {
 const config = { uris: ['**'] }
 // (both, there: commands that pass their words on)
 const protocols = { note: { default: 'get', actions: Object.fromEntries(Object.keys(actions.note).map(a => [a, ['both', 'there'].includes(a) ? { ...config, command: true } : config])) } }
-const registry = { valid: () => ({ valid: true }) }
+const types = { held: ['haiccing/base-package-runtime/record', 'haiccing/base-package-runtime/request'], valid: () => ({ valid: true }) }
 
 async function mrepo (t, name = 'x') {
   const work = mkdtempSync(join(tmpdir(), 'execute-'))
@@ -48,7 +48,7 @@ async function mrepo (t, name = 'x') {
   const dir = join(work, 'mrepos', 'local', name)
   const backend = p2pgitBackend(join(dir, '.git'), { fs })
   await backend.init()
-  const ctx = { work, dir, name, uri: `local/${name}`, backend, repo: openRepo(backend), writer: writer(backend), protocols, registry }
+  const ctx = { work, dir, name, uri: `local/${name}`, backend, repo: openRepo(backend), writer: writer(backend), protocols, types }
   for (const b of [PENDING, EXECUTE, DONE]) await ensure(ctx, b)
   for (const b of ['main', 'protocols']) await ctx.writer.createLayer(b, `Create ${b}`, { author: AUTHOR })
   return ctx
