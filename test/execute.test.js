@@ -115,7 +115,7 @@ test('a command run in the execution: its answer its own, the flags in force wit
   t.alike(lines(r), [['verbose', 'note.get.read', 'Read a.txt, 5 bytes. (N ms; 1 read)']], 'its entries under its own name, as much as the flag in force asks')
   t.alike(r.processing.continuation, { at: '.', script: 'haicc . note/get a\n' }, 'what whoever asked goes on with')
   const bad = await own(ctx, 'note/both . note/get a --flags nope')
-  t.alike(bad.returned.message, 'Failed, nothing of it kept.\nnot run: no flag: nope (container, feedback, force, help, layer, log, physical)', 'what its flags keep from being run: said, as at the door')
+  t.alike(bad.returned.message, 'Failed, nothing of it kept.\nnot run: no flag: nope (container, feedback, help, layer, log, physical)', 'what its flags keep from being run: said, as at the door')
 })
 
 test('sent on: the command in a request of its own, the flags in force in its line; the principal waiting; returned with the answer, the request it became linked', async (t) => {
