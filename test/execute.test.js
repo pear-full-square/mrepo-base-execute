@@ -75,7 +75,7 @@ test('execute: its action run on its own branches, squashed into each target; th
   const twice = await own(ctx, 'note/put b hello twice')
   t.alike([twice.returned.status, twice.processing.changed], ['done', [{ target: 'main', added: ['b.txt'], changed: [], removed: [] }]], 'a local commit undone in the action: not in the target')
   const got = await own(ctx, 'note/get a --flags log=debug')
-  t.alike(got.returned, { status: 'done', message: 'Read a.txt.', attachments: [{ name: 'the document', type: 'haiccing/base-package-note/text', at: 'main/a.txt' }] }, 'data its product: attached, by its type, where it is')
+  t.alike(got.returned, { status: 'done', message: 'Read a.txt.', attachments: [{ name: 'the document', type: 'haiccing/base-package-note/text', content: null, at: 'main/a.txt' }] }, 'data its product: attached, by its type, where it is')
   t.alike(lines(got), [['verbose', 'note.get.read', 'Read a.txt, 5 bytes. (N ms; 1 read)'], ['debug', 'note.get.bytes', 'Its text: hello.']], 'its log as much as its flag asks: the action\'s entries under its name, a step measured behind its line')
   const many = await own(ctx, 'note/many .')
   t.alike([many.processing.changed[0].added.length, lines(many)], [LISTED, [['info', 'request.changed', `${LISTED + 1} paths changed in main: the first ${LISTED} listed.`]]], 'more than it lists of a target: said')
