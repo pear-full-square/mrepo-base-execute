@@ -35,6 +35,22 @@ const actions = {
     attach: async (exec, { args: [how] }) => ({ message: 'Its text attached.', attachments: [how === 'misfit' ? { name: 'the text', type: 'avro/string', value: 5 } : how === 'unheld' ? { name: 'the text', type: 'haiccing/base-package-note/text', value: 'hello' } : { name: 'the text', type: 'avro/string', value: 'hello' }, ...(how === 'both' ? [{ name: 'where it is', type: 'avro/string', at: 'main/a.txt' }] : [])] }),
     // what another attached, read as a value; passed on as it was handed
     reads: async (exec, { args }) => { const r = await exec.run(args); return { message: `It attached ${r.attachments[0].name}: ${r.attachments[0].value}`, attachments: r.attachments } },
+    // what another attached, passed on without reading it
+    passes: async (exec, { args }) => { const r = await exec.run(args); return { message: 'Passed on.', attachments: r.attachments } },
+    // a wrapper of a type not held here, passed on as it came
+    carry: async () => ({ message: 'Carried.', attachments: [{ name: 'a node', type: 'haiccing/base-package-rns/lookup-entry', content: 'AAE=', at: null }] }),
+    // a misfit attached beside a write: nothing of it kept
+    spoil: async (exec) => { exec.put('main/spoilt.txt', Buffer.from('x')); return { message: 'Wrote it.', attachments: [{ name: 'the text', type: 'avro/string', value: 5 }] } },
+    // a job whose answer carries content that is no value of its type
+    garbled: async (exec) => {
+      if (exec.resumed) return 'Never here.'
+      return exec.wait(async () => ({ message: 'Done.', attachments: [{ name: 'the text', type: 'avro/string', content: 'yA==' }] }))
+    },
+    // a job passing on a wrapper of a type not held here
+    relay: async (exec) => {
+      if (exec.resumed) return { message: 'Relayed.', attachments: exec.resumed.attachments }
+      return exec.wait(async () => ({ message: 'Done.', attachments: [{ name: 'a node', type: 'haiccing/base-package-rns/lookup-entry', content: 'AAE=', at: null }] }))
+    },
     // a job that attaches; resumed with its value
     job: async (exec) => {
       if (exec.resumed) return `The job attached: ${exec.resumed.attachments[0].value}`
@@ -49,7 +65,7 @@ const actions = {
 }
 const config = { uris: ['**'] }
 // (both, there: commands that pass their words on)
-const protocols = { note: { default: 'get', actions: Object.fromEntries(Object.keys(actions.note).map(a => [a, ['both', 'there', 'reads'].includes(a) ? { ...config, command: true } : config])) } }
+const protocols = { note: { default: 'get', actions: Object.fromEntries(Object.keys(actions.note).map(a => [a, ['both', 'there', 'reads', 'passes'].includes(a) ? { ...config, command: true } : config])) } }
 // what the mrepo holds, stood in for: nothing asked at the door, AVRO's own types by their URI
 const types = { held: ['haiccing/base-package-runtime/record', 'haiccing/base-package-runtime/request'], valid: () => ({ valid: true }), type: uri => { const t = primitiveOf(uri); if (!t) throw new Error(`type not held: ${uri}`); return t } }
 
@@ -102,7 +118,7 @@ test('failed: what stopped it said, its causes; nothing of it kept; an action th
   t.alike([r.processing.changed, r.processing.metrics.puts], [[], 1], 'nothing changed; its metrics still its own')
   t.alike((await own(ctx, 'note/quiet .')).returned.message, 'Failed, nothing of it kept.\nnothing said: note/quiet answers with what happened, in words', 'an action says what happened')
   t.alike((await own(ctx, 'note/old .')).returned.message, 'Failed, nothing of it kept.\nnot a log entry: note.old.old (what happened, said: a line)', 'a log entry is a line')
-  t.alike((await own(ctx, 'note/nope .')).returned.message, 'Refused, nothing run.\nno action: note nope (attach, both, break, get, job, later, many, old, put, quiet, reads, there)', 'an action there is none of: refused')
+  t.alike((await own(ctx, 'note/nope .')).returned.message, 'Refused, nothing run.\nno action: note nope (attach, both, break, carry, garbled, get, job, later, many, old, passes, put, quiet, reads, relay, spoil, there)', 'an action there is none of: refused')
 })
 
 test('from the inbox: refused as it executes while its protocol is not active; active: run, sent back', async (t) => {
@@ -181,6 +197,20 @@ test('attached: a value written as the wrapper, its content the value\'s bytes; 
   for (const [how, why] of [['misfit', 'caused by: not a value of its type: ., expected string'], ['unheld', 'caused by: type not held: haiccing/base-package-note/text']]) {
     const bad = await own(ctx, `note/attach . ${how}`)
     t.alike([bad.returned.status, bad.returned.message, bad.returned.attachments], ['failed', `Failed, nothing of it kept.\nnot attached: the text (${how === 'misfit' ? 'avro/string' : 'haiccing/base-package-note/text'})\n${why}`, []], `${how}: the request failed whole, the place said`)
+  }
+  const wrapperIn = { name: 'a node', type: 'haiccing/base-package-rns/lookup-entry', content: 'AAE=', at: null }
+  t.alike((await own(ctx, 'note/passes . note/carry .')).returned.attachments, [wrapperIn], 'a wrapper of a type not held here, through exec.run: passed on untouched')
+  t.ok(/value not read: a node \(type not held/.test((await own(ctx, 'note/reads . note/carry .')).returned.message), 'its value refused to the action that asks for it, said')
+  t.alike((await own(ctx, 'note/passes . note/attach .')).returned.attachments, [{ name: 'the text', type: 'avro/string', content: 'CmhlbGxv', at: null }], 'one held here, handed as a value and passed on: carried as it came')
+  const before = (await heads(ctx)).main
+  const spoilt = await own(ctx, 'note/spoil .')
+  t.alike([spoilt.returned.status, (await heads(ctx)).main, spoilt.processing.changed], ['failed', before, []], 'a misfit beside a write: failed, nothing of it kept')
+  for (const [line, check] of [['note/garbled .', r => t.alike([r.returned.status, r.returned.message.split('\n').slice(0, 2)], ['failed', ['Failed, nothing of it kept.', 'what the job returned: not read: the text (avro/string)']], 'a job\'s answer that cannot be read: the request failed, said; the runtime goes on')], ['note/relay .', r => t.alike(r.returned.attachments, [wrapperIn], 'a job passing on a wrapper of a type not held here: carried untouched')]]) {
+    const q = await internal(ctx, line)
+    await pass(ctx)
+    await new Promise(resolve => setTimeout(resolve, 50))
+    await pass(ctx); await pass(ctx)
+    check((await layer(ctx, DONE).read(q.name)).value)
   }
   const j = await internal(ctx, 'note/job .')
   await pass(ctx)

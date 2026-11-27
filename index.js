@@ -225,7 +225,16 @@ export async function execute (ctx, { actions = {} } = {}) {
     // (exec.resumed), below.
     if (p.waits && !isReturned(p.response)) continue
     const was = request.processing.waiting
-    const resumed = was?.resume ? handed(ctx.types ?? null, p.response.returned) : null
+    // (what the job returned, as action code is handed it; what cannot be
+    // read fails the request here, said: not the runtime's pass)
+    let resumed = null
+    if (was?.resume) {
+      // catch: the job's answer not read: the request returned failed with why
+      try { resumed = handed(ctx.types ?? null, p.response.returned) } catch (err) {
+        await written(returned({ ...request, processing: { ...request.processing, waiting: null } }, 'failed', ['Failed, nothing of it kept.', `what the job returned: ${err.message}`, ...causesOf(err).map(c => `caused by: ${c}`)].join('\n')))
+        continue
+      }
+    }
     if (was && !resumed) {
       const r = p.response
       // What was returned there is this request's answer. What happened
